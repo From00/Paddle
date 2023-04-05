@@ -17,7 +17,7 @@
 #include "paddle/fluid/distributed/fleet_executor/carrier.h"
 #include "paddle/fluid/distributed/fleet_executor/task_loop.h"
 #include "paddle/fluid/distributed/fleet_executor/task_node.h"
-
+#include "paddle/fluid/platform/profiler/event_tracing.h"
 namespace paddle {
 namespace distributed {
 
@@ -38,6 +38,10 @@ void Interceptor::Handle(const InterceptorMessage& msg) {
   PADDLE_ENFORCE_NOT_NULL(handle_,
                           platform::errors::PreconditionNotMet(
                               "Message handle is not registered."));
+  // NOTE(Ruibiao): Try your best to NOT demangle the type name, it may harm
+  // performance.
+  platform::RecordEvent handle_event(typeid(*this).name() +
+                                     23 /*size_of("N6paddle11distributed16")*/);
   handle_(msg);
 }
 

@@ -21,6 +21,7 @@
 #include "paddle/fluid/framework/scope.h"
 #include "paddle/fluid/framework/tensor_util.h"
 #include "paddle/fluid/platform/place.h"
+#include "paddle/fluid/platform/profiler/event_tracing.h"
 #include "paddle/phi/core/ddim.h"
 #include "paddle/phi/core/errors.h"
 #include "paddle/phi/core/serialization.h"
@@ -348,7 +349,15 @@ void ComputeInterceptor::DecodeMsgVars(const InterceptorMessage& msg) {
 }
 
 void ComputeInterceptor::Compute(const InterceptorMessage& msg) {
+  char event_name[100];
   if (msg.message_type() == DATA_IS_READY) {
+    std::snprintf(event_name,
+                  100,
+                  "[%ld, -, %ld] Compute DATA_IS_READY",
+                  msg.scope_idx(),
+                  GetInterceptorId());
+    platform::RecordEvent compute_event(event_name);
+
     VLOG(3) << "Compute interceptor " << interceptor_id_
             << " receive data_is_ready " << msg.src_id() << " "
             << msg.scope_idx() << " ";
@@ -357,12 +366,26 @@ void ComputeInterceptor::Compute(const InterceptorMessage& msg) {
     IncreaseReady(msg.src_id(), msg.scope_idx());
     Run();
   } else if (msg.message_type() == DATA_IS_USELESS) {
+    std::snprintf(event_name,
+                  100,
+                  "[%ld, -, %ld] Compute DATA_IS_USELESS",
+                  msg.scope_idx(),
+                  GetInterceptorId());
+    platform::RecordEvent compute_event(event_name);
+
     VLOG(3) << "Compute interceptor " << interceptor_id_
             << " receive data_is_useless " << msg.src_id() << " "
             << msg.scope_idx() << " ";
     DecreaseBuff(msg.src_id());
     Run();
   } else if (msg.message_type() == DATA_WITH_VARS) {
+    std::snprintf(event_name,
+                  100,
+                  "[%ld, -, %ld] Compute DATA_WITH_VARS",
+                  msg.scope_idx(),
+                  GetInterceptorId());
+    platform::RecordEvent compute_event(event_name);
+
     VLOG(3) << "Compute interceptor " << interceptor_id_
             << " receive data_with_vars " << msg.src_id() << " "
             << msg.scope_idx() << " ";
@@ -370,6 +393,14 @@ void ComputeInterceptor::Compute(const InterceptorMessage& msg) {
     IncreaseReady(msg.src_id(), msg.scope_idx());
     Run();
   } else if (msg.message_type() == START_LOOP) {
+    std::snprintf(event_name,
+                  100,
+                  "[%ld, %ld, %ld] Compute START_LOOP",
+                  msg.scope_idx(),
+                  msg.gen_step(),
+                  GetInterceptorId());
+    platform::RecordEvent compute_event(event_name);
+
     VLOG(3) << "Compute interceptor " << interceptor_id_
             << " receive start_loop " << msg.src_id() << " in scope "
             << msg.scope_idx() << " with gen_step " << msg.gen_step();

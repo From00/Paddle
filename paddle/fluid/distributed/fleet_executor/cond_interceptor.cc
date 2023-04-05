@@ -19,6 +19,7 @@
 #include "paddle/fluid/framework/operator.h"
 #include "paddle/fluid/platform/errors.h"
 #include "paddle/fluid/platform/place.h"
+#include "paddle/fluid/platform/profiler/event_tracing.h"
 #include "paddle/phi/core/dense_tensor.h"
 #include "paddle/phi/core/errors.h"
 
@@ -113,6 +114,15 @@ void CondInterceptor::ReplyDataIsUseless(int64_t up_id) {
 }
 
 void CondInterceptor::Compute(int64_t gen_step) {
+  char event_name[100];
+  std::snprintf(event_name,
+                100,
+                "[%ld, %ld, %ld] Compute START_LOOP",
+                cur_scope_id_,
+                gen_step,
+                GetInterceptorId());
+  platform::RecordEvent compute_event(event_name);
+
   bool cond = GetCondResult();
   VLOG(3) << "Cond interceptor get condition var " << node_->cond_var()
           << " with value " << cond;

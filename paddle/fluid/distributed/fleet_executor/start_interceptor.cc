@@ -16,6 +16,7 @@
 
 #include "paddle/fluid/distributed/fleet_executor/task_node.h"
 #include "paddle/fluid/framework/operator.h"
+#include "paddle/fluid/platform/profiler/event_tracing.h"
 #include "paddle/phi/core/errors.h"
 
 namespace paddle {
@@ -88,13 +89,29 @@ void StartInterceptor::SendDataReadyToDownStream() {
 }
 
 void StartInterceptor::Compute(const InterceptorMessage& msg) {
+  char event_name[100];
+
   if (msg.message_type() == DATA_IS_READY) {
+    std::snprintf(event_name,
+                  100,
+                  "[%ld, -, %ld] Compute DATA_IS_READY",
+                  msg.scope_idx(),
+                  GetInterceptorId());
+    platform::RecordEvent compute_event(event_name);
+
     VLOG(3) << "Start interceptor " << interceptor_id_
             << " receive data_is_ready " << msg.src_id() << " "
             << msg.scope_idx() << " ";
     IncreaseReady(msg.src_id(), msg.scope_idx());
     Run();
   } else if (msg.message_type() == DATA_IS_USELESS) {
+    std::snprintf(event_name,
+                  100,
+                  "[%ld, -, %ld] Compute DATA_IS_READY",
+                  msg.scope_idx(),
+                  GetInterceptorId());
+    platform::RecordEvent compute_event(event_name);
+
     VLOG(3) << "Start interceptor receive data_is_useless " << msg.src_id()
             << " " << finish_count_;
     finish_count_--;
